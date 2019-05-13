@@ -257,7 +257,7 @@ class DqnPolicy(Policy, BaseModelMixin):
                     feed_dict
                 )
                 self.writer.add_summary(summ_str, step)
-                if step % config.target_update_every_step:
+                if step % config.target_update_every_step == 0:
                     self.update_target_q_net()
 
             # Add all the transitions of one trajectory into the replay memory.
