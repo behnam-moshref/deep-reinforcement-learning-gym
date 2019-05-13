@@ -61,7 +61,17 @@ class DqnPolicy(Policy, BaseModelMixin):
             assert NotImplementedError()
 
     def init_target_q_net(self):
-        self.sess.run([v_t.assign(v) for v_t, v in zip(self.q_target_vars, self.q_vars)])
+        with tf.variable_scope('copy_ops'):
+            copy_ops = []
+
+            for v_t, v in zip(self.q_target_vars, self.q_vars):
+                copy_op = v_t.assign(v)
+                copy_ops.append(copy_op)
+
+            self.copy_op = tf.group(*copy_ops, name='copy_op')
+
+        self.update_target_q_net()
+        # self.sess.run([v_t.assign(v) for v_t, v in zip(self.q_target_vars, self.q_vars)])
 
     def _extract_network_params(self):
         net_params = {}
@@ -170,7 +180,11 @@ class DqnPolicy(Policy, BaseModelMixin):
         self.init_target_q_net()
 
     def update_target_q_net(self):
-        self.sess.run([v_t.assign(v) for v_t, v in zip(self.q_target_vars, self.q_vars)])
+        # self.sess.run([v_t.assign(v) for v_t, v in zip(self.q_target_vars, self.q_vars)])
+        if self.copy_op is None:
+            raise Exception("run `create_copy_op` first before copy")
+        else:
+            self.sess.run(self.copy_op)
 
     def act(self, state, epsilon=0.1):
         if self.training and np.random.random() < epsilon:
